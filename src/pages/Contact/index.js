@@ -351,8 +351,7 @@ const Contact = () => {
                             <div className="info-content">
                                 <div className="label">Dirección</div>
                                 <div className="value">
-                                    Calle Ejemplo 123<br />
-                                    28001 Madrid, España
+                                    Armenia, Quindío<br />
                                 </div>
                             </div>
                         </InfoItem>
@@ -363,7 +362,7 @@ const Contact = () => {
                             </div>
                             <div className="info-content">
                                 <div className="label">Teléfono</div>
-                                <div className="value">+34 123 456 789</div>
+                                <div className="value">+57 318 348 7086</div>
                             </div>
                         </InfoItem>
 
@@ -373,7 +372,7 @@ const Contact = () => {
                             </div>
                             <div className="info-content">
                                 <div className="label">Email</div>
-                                <div className="value">info@foodie.com</div>
+                                <div className="value">Cabaron_23@cue.edu.co</div>
                             </div>
                         </InfoItem>
 

@@ -266,7 +266,7 @@ const Footer = () => {
                     <FooterText>
                         <strong>Servicio a domicilio</strong>
                         <br />
-                        Todos los días hasta las 9:30 PM
+                        Todos los días hasta las 10:30 PM
                     </FooterText>
                 </FooterSection>
 
@@ -274,15 +274,15 @@ const Footer = () => {
                     <FooterTitle>Contacto</FooterTitle>
                     <ContactItem>
                         <FiMapPin />
-                        <span>Calle Ejemplo 123, Ciudad</span>
+                        <span>Armenia, Quindío</span>
                     </ContactItem>
                     <ContactItem>
                         <FiPhone />
-                        <span>+34 123 456 789</span>
+                        <span>+57 318 348 7086</span>
                     </ContactItem>
                     <ContactItem>
                         <FiMail />
-                        <span>info@foodie.com</span>
+                        <span>Cabaron_23@cue.edu.co</span>
                     </ContactItem>
                 </FooterSection>
             </FooterContent>
