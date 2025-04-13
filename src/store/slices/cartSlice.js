@@ -69,6 +69,11 @@ const initialState = {
     error: null,
 };
 
+const safelyConvertToNumber = (value) => {
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+};
+
 const cartSlice = createSlice({
     name: 'cart',
     initialState,
@@ -88,7 +93,8 @@ const cartSlice = createSlice({
             .addCase(fetchCart.fulfilled, (state, action) => {
                 state.loading = false;
                 state.items = action.payload.items || [];
-                state.totalPrice = action.payload.total_price || 0;
+                // Ensure totalPrice is converted to a number
+                state.totalPrice = safelyConvertToNumber(action.payload.total_price);
             })
             .addCase(fetchCart.rejected, (state, action) => {
                 state.loading = false;
@@ -102,7 +108,7 @@ const cartSlice = createSlice({
             .addCase(addToCart.fulfilled, (state, action) => {
                 state.loading = false;
                 state.items = action.payload.items || [];
-                state.totalPrice = action.payload.total_price || 0;
+                state.totalPrice = safelyConvertToNumber(action.payload.total_price);
             })
             .addCase(addToCart.rejected, (state, action) => {
                 state.loading = false;
@@ -116,7 +122,7 @@ const cartSlice = createSlice({
             .addCase(updateCartItem.fulfilled, (state, action) => {
                 state.loading = false;
                 state.items = action.payload.items || [];
-                state.totalPrice = action.payload.total_price || 0;
+                state.totalPrice = safelyConvertToNumber(action.payload.total_price);
             })
             .addCase(updateCartItem.rejected, (state, action) => {
                 state.loading = false;
@@ -130,7 +136,7 @@ const cartSlice = createSlice({
             .addCase(removeCartItem.fulfilled, (state, action) => {
                 state.loading = false;
                 state.items = action.payload.items || [];
-                state.totalPrice = action.payload.total_price || 0;
+                state.totalPrice = safelyConvertToNumber(action.payload.total_price);
             })
             .addCase(removeCartItem.rejected, (state, action) => {
                 state.loading = false;

@@ -1,276 +1,276 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import React, {useEffect, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {useNavigate} from 'react-router-dom';
 import styled from 'styled-components';
-import { fetchOrders, cancelOrder } from '../../store/slices/ordersSlice';
-import { showNotification } from '../../store/slices/uiSlice';
+import {cancelOrder, fetchOrders} from '../../store/slices/ordersSlice';
+import {showNotification} from '../../store/slices/uiSlice';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import Modal from '../../components/common/Modal';
-import { FiChevronRight, FiDownload, FiX, FiSearch } from 'react-icons/fi';
+import {FiChevronRight, FiDownload, FiSearch, FiX} from 'react-icons/fi';
 
 const OrderHistoryContainer = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
+    max-width: 1000px;
+    margin: 0 auto;
 `;
 
 const PageTitle = styled.h1`
-  font-size: 2.5rem;
-  color: ${({ theme }) => theme.heading};
-  margin-bottom: 30px;
-  text-align: center;
+    font-size: 2.5rem;
+    color: ${({theme}) => theme.heading};
+    margin-bottom: 30px;
+    text-align: center;
 `;
 
 const SearchBar = styled.div`
-  display: flex;
-  margin-bottom: 30px;
-  position: relative;
+    display: flex;
+    margin-bottom: 30px;
+    position: relative;
 `;
 
 const SearchInput = styled.input`
-  flex: 1;
-  padding: 12px 15px;
-  padding-left: 40px;
-  border-radius: 50px;
-  border: 2px solid ${({ theme }) => theme.border};
-  background-color: ${({ theme }) => theme.background};
-  color: ${({ theme }) => theme.text};
-  transition: all 0.3s ease;
-  
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.primary};
-  }
-  
-  /* Cartoon style */
-  border: 2px solid ${({ theme }) => theme.outlineColor};
-  box-shadow: 3px 3px 0 ${({ theme }) => theme.shadowStrong};
+    flex: 1;
+    padding: 12px 15px;
+    padding-left: 40px;
+    border-radius: 50px;
+    border: 2px solid ${({theme}) => theme.border};
+    background-color: ${({theme}) => theme.background};
+    color: ${({theme}) => theme.text};
+    transition: all 0.3s ease;
+
+    &:focus {
+        outline: none;
+        border-color: ${({theme}) => theme.primary};
+    }
+
+    /* Cartoon style */
+    border: 2px solid ${({theme}) => theme.outlineColor};
+    box-shadow: 3px 3px 0 ${({theme}) => theme.shadowStrong};
 `;
 
 const SearchIcon = styled.div`
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${({ theme }) => theme.text};
-  opacity: 0.7;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${({theme}) => theme.text};
+    opacity: 0.7;
 `;
 
 const Tabs = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  padding-bottom: 5px;
-  
-  &::-webkit-scrollbar {
-    height: 5px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: ${({ theme }) => theme.border};
-    border-radius: 10px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.primary};
-    border-radius: 10px;
-  }
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+
+    &::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: ${({theme}) => theme.border};
+        border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: ${({theme}) => theme.primary};
+        border-radius: 10px;
+    }
 `;
 
 const Tab = styled.button`
-  padding: 10px 20px;
-  background-color: ${({ active, theme }) => active ? theme.primary : theme.cardBg};
-  color: ${({ active, theme }) => active ? 'white' : theme.text};
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: ${({ active }) => active ? 'bold' : 'normal'};
-  white-space: nowrap;
-  
-  &:hover {
-    background-color: ${({ active, theme }) => active ? theme.primaryDark : theme.shadow};
-  }
-  
-  /* Cartoon style */
-  border: 2px solid ${({ theme }) => theme.outlineColor};
-  box-shadow: 2px 2px 0 ${({ theme }) => theme.shadowStrong};
+    padding: 10px 20px;
+    background-color: ${({active, theme}) => active ? theme.primary : theme.cardBg};
+    color: ${({active, theme}) => active ? 'white' : theme.text};
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: ${({active}) => active ? 'bold' : 'normal'};
+    white-space: nowrap;
+
+    &:hover {
+        background-color: ${({active, theme}) => active ? theme.primaryDark : theme.shadow};
+    }
+
+    /* Cartoon style */
+    border: 2px solid ${({theme}) => theme.outlineColor};
+    box-shadow: 2px 2px 0 ${({theme}) => theme.shadowStrong};
 `;
 
 const OrdersList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 `;
 
 const OrderCard = styled.div`
-  background-color: ${({ theme }) => theme.cardBg};
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-  
-  /* Cartoon style */
-  border: 3px solid ${({ theme }) => theme.outlineColor};
-  box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
+    background-color: ${({theme}) => theme.cardBg};
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-5px);
+    }
+
+    /* Cartoon style */
+    border: 3px solid ${({theme}) => theme.outlineColor};
+    box-shadow: 5px 5px 0 ${({theme}) => theme.shadowStrong};
 `;
 
 const OrderHeader = styled.div`
-  padding: 15px 20px;
-  background-color: ${({ theme }) => theme.shadow};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+    padding: 15px 20px;
+    background-color: ${({theme}) => theme.shadow};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 `;
 
 const OrderNumber = styled.p`
-  font-weight: bold;
-  margin: 0;
-  color: ${({ theme }) => theme.heading};
+    font-weight: bold;
+    margin: 0;
+    color: ${({theme}) => theme.heading};
 `;
 
 const OrderDate = styled.p`
-  margin: 0;
-  color: ${({ theme }) => theme.text};
-  font-size: 0.9rem;
+    margin: 0;
+    color: ${({theme}) => theme.text};
+    font-size: 0.9rem;
 `;
 
 const OrderStatus = styled.div`
-  padding: 5px 15px;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: white;
-  background-color: ${({ status, theme }) => {
-    switch (status) {
-        case 'PENDING':
-            return theme.warning;
-        case 'PROCESSING':
-            return theme.info;
-        case 'SCHEDULED':
-            return theme.accent;
-        case 'OUT_FOR_DELIVERY':
-            return theme.secondary;
-        case 'DELIVERED':
-            return theme.success;
-        case 'CANCELLED':
-            return '#999';
-        case 'FAILED':
-            return theme.error;
-        default:
-            return theme.primary;
-    }
-}};
-  
-  /* Cartoon style */
-  border: 2px solid ${({ theme }) => theme.outlineColor};
+    padding: 5px 15px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: white;
+    background-color: ${({status, theme}) => {
+        switch (status) {
+            case 'PENDING':
+                return theme.warning;
+            case 'PROCESSING':
+                return theme.info;
+            case 'SCHEDULED':
+                return theme.accent;
+            case 'OUT_FOR_DELIVERY':
+                return theme.secondary;
+            case 'DELIVERED':
+                return theme.success;
+            case 'CANCELLED':
+                return '#999';
+            case 'FAILED':
+                return theme.error;
+            default:
+                return theme.primary;
+        }
+    }};
+
+    /* Cartoon style */
+    border: 2px solid ${({theme}) => theme.outlineColor};
 `;
 
 const OrderContent = styled.div`
-  padding: 20px;
+    padding: 20px;
 `;
 
 const OrderInfo = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
 `;
 
 const InfoItem = styled.div`
-  h4 {
-    margin: 0 0 5px 0;
-    font-size: 0.9rem;
-    color: ${({ theme }) => theme.text};
-    opacity: 0.8;
-  }
-  
-  p {
-    margin: 0;
-    color: ${({ theme }) => theme.heading};
-    font-weight: bold;
-  }
+    h4 {
+        margin: 0 0 5px 0;
+        font-size: 0.9rem;
+        color: ${({theme}) => theme.text};
+        opacity: 0.8;
+    }
+
+    p {
+        margin: 0;
+        color: ${({theme}) => theme.heading};
+        font-weight: bold;
+    }
 `;
 
 const OrderItems = styled.div`
-  margin-bottom: 20px;
-  
-  h4 {
-    margin: 0 0 10px 0;
-    color: ${({ theme }) => theme.heading};
-  }
+    margin-bottom: 20px;
+
+    h4 {
+        margin: 0 0 10px 0;
+        color: ${({theme}) => theme.heading};
+    }
 `;
 
 const ItemsList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 `;
 
 const Item = styled.div`
-  background-color: ${({ theme }) => theme.shadow};
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  
-  .quantity {
-    font-weight: bold;
-    color: ${({ theme }) => theme.primary};
-  }
+    background-color: ${({theme}) => theme.shadow};
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+
+    .quantity {
+        font-weight: bold;
+        color: ${({theme}) => theme.primary};
+    }
 `;
 
 const OrderActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
 `;
 
 const NoOrders = styled.div`
-  text-align: center;
-  padding: 50px 20px;
-  background-color: ${({ theme }) => theme.cardBg};
-  border-radius: 12px;
-  margin-bottom: 20px;
-  
-  /* Cartoon style */
-  border: 3px solid ${({ theme }) => theme.outlineColor};
-  box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
-  
-  h3 {
-    margin-bottom: 15px;
-    color: ${({ theme }) => theme.heading};
-  }
-  
-  p {
+    text-align: center;
+    padding: 50px 20px;
+    background-color: ${({theme}) => theme.cardBg};
+    border-radius: 12px;
     margin-bottom: 20px;
-    color: ${({ theme }) => theme.text};
-  }
+
+    /* Cartoon style */
+    border: 3px solid ${({theme}) => theme.outlineColor};
+    box-shadow: 5px 5px 0 ${({theme}) => theme.shadowStrong};
+
+    h3 {
+        margin-bottom: 15px;
+        color: ${({theme}) => theme.heading};
+    }
+
+    p {
+        margin-bottom: 20px;
+        color: ${({theme}) => theme.text};
+    }
 `;
 
 const CancelConfirmModal = styled(Modal)`
-  .warning-text {
-    color: ${({ theme }) => theme.error};
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  p {
-    margin-bottom: 15px;
-    color: ${({ theme }) => theme.text};
-  }
+    .warning-text {
+        color: ${({theme}) => theme.error};
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+
+    p {
+        margin-bottom: 15px;
+        color: ${({theme}) => theme.text};
+    }
 `;
 
 const OrderHistory = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { orders, loading, error } = useSelector(state => state.orders);
+    const {orders, loading, error} = useSelector(state => state.orders);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
@@ -281,13 +281,85 @@ const OrderHistory = () => {
         dispatch(fetchOrders());
     }, [dispatch]);
 
+    // Enhanced debug logging with comprehensive error tracking
+    useEffect(() => {
+        if (!orders || orders.length === 0) {
+            console.warn('No orders found', {orders});
+            return;
+        }
+
+        try {
+            const orderDebugInfo = orders.map((order, index) => {
+                let totalPriceInfo = {
+                    original: order.total_price,
+                    type: typeof order.total_price,
+                    stringValue: String(order.total_price),
+                    numberValue: Number(order.total_price),
+                    isNaN: isNaN(Number(order.total_price))
+                };
+
+                return {
+                    index,
+                    id: order.id,
+                    totalPriceInfo,
+                    orderKeys: Object.keys(order)
+                };
+            });
+
+            console.log('Orders Comprehensive Debug:', {
+                ordersCount: orders.length,
+                orderDebugInfo
+            });
+        } catch (error) {
+            console.error('Error in orders debug logging:', error);
+        }
+    }, [orders]);
+
+
     const handleViewOrder = (orderId) => {
         navigate(`/orders/${orderId}`);
     };
 
     const handleDownloadInvoice = (orderId, e) => {
         e.stopPropagation(); // Evitar la navegación al detalle
-        window.open(`/api/invoices/download/${orderId}`, '_blank');
+        try {
+            import('../../api/orders').then(module => {
+                module.default.downloadInvoice(orderId)
+                    .then(response => {
+                        // Create a blob URL for the download
+                        const blob = new Blob([response.data], {type: 'application/pdf'});
+                        const url = window.URL.createObjectURL(blob);
+
+                        // Create a temporary link element to trigger download
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `factura_${orderId}.pdf`);
+                        document.body.appendChild(link);
+                        link.click();
+
+                        // Clean up
+                        link.remove();
+                        window.URL.revokeObjectURL(url);
+                    })
+                    .catch(error => {
+                        console.error('Error downloading invoice:', error);
+
+                        // Show user-friendly notification
+                        dispatch(showNotification({
+                            message: 'No se pudo descargar la factura. Inténtalo de nuevo más tarde.',
+                            type: 'error'
+                        }));
+                    });
+            });
+        } catch (error) {
+            console.error('Invoice download error:', error);
+
+            // Show user-friendly notification
+            dispatch(showNotification({
+                message: 'Hubo un problema al descargar la factura.',
+                type: 'error'
+            }));
+        }
     };
 
     const handleCancelOrder = (order, e) => {
@@ -309,7 +381,10 @@ const OrderHistory = () => {
     };
 
     const getFilteredOrders = () => {
-        let filteredOrders = [...orders];
+        // Ensure orders is an array
+        const safeOrders = Array.isArray(orders) ? orders : [];
+
+        let filteredOrders = [...safeOrders];
 
         // Aplicar filtros por estado
         if (activeFilter !== 'all') {
@@ -320,8 +395,8 @@ const OrderHistory = () => {
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filteredOrders = filteredOrders.filter(order =>
-                order.order_number.toLowerCase().includes(query) ||
-                order.delivery_address.toLowerCase().includes(query)
+                (order.order_number && order.order_number.toLowerCase().includes(query)) ||
+                (order.delivery_address && order.delivery_address.toLowerCase().includes(query))
             );
         }
 
@@ -343,7 +418,7 @@ const OrderHistory = () => {
     };
 
     if (loading) {
-        return <Loader type="cartoon" text="Cargando tus pedidos..." />;
+        return <Loader type="cartoon" text="Cargando tus pedidos..."/>;
     }
 
     if (error) {
@@ -369,7 +444,7 @@ const OrderHistory = () => {
 
             <SearchBar>
                 <SearchIcon>
-                    <FiSearch />
+                    <FiSearch/>
                 </SearchIcon>
                 <SearchInput
                     type="text"
@@ -450,7 +525,11 @@ const OrderHistory = () => {
 
                                     <InfoItem>
                                         <h4>Total</h4>
-                                        <p>{order.total_price.toFixed(2)} €</p>
+                                        {/* Convertimos a número (float) antes de formatear.
+        Usamos parseFloat para manejar decimales.
+        Añadimos '|| 0' por si total_price fuera null o undefined,
+        para evitar errores con parseFloat(null). */}
+                                        <p>{parseFloat(order.total_price || 0).toFixed(2)} €</p>
                                     </InfoItem>
 
                                     {order.is_scheduled && (
@@ -479,7 +558,7 @@ const OrderHistory = () => {
                                             small
                                             onClick={(e) => handleCancelOrder(order, e)}
                                         >
-                                            <FiX /> Cancelar
+                                            <FiX/> Cancelar
                                         </Button>
                                     )}
 
@@ -488,7 +567,7 @@ const OrderHistory = () => {
                                         small
                                         onClick={(e) => handleDownloadInvoice(order.id, e)}
                                     >
-                                        <FiDownload /> Factura
+                                        <FiDownload/> Factura
                                     </Button>
 
                                     <Button
@@ -496,7 +575,7 @@ const OrderHistory = () => {
                                         small
                                         onClick={() => handleViewOrder(order.id)}
                                     >
-                                        Detalles <FiChevronRight />
+                                        Detalles <FiChevronRight/>
                                     </Button>
                                 </OrderActions>
                             </OrderContent>
@@ -544,7 +623,8 @@ const OrderHistory = () => {
                 }
             >
                 <div className="warning-text">¿Estás seguro de que quieres cancelar este pedido?</div>
-                <p>Una vez cancelado, no podrás revertir esta acción. Si tienes alguna duda, contacta con nuestro servicio de atención al cliente.</p>
+                <p>Una vez cancelado, no podrás revertir esta acción. Si tienes alguna duda, contacta con nuestro
+                    servicio de atención al cliente.</p>
             </CancelConfirmModal>
         </OrderHistoryContainer>
     );

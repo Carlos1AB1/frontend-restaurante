@@ -1,4 +1,3 @@
-// src/pages/Cart/index.js
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
@@ -36,7 +35,6 @@ const CartItemsContainer = styled.div`
   border-radius: 12px;
   overflow: hidden;
   
-  /* Cartoon style */
   border: 3px solid ${({ theme }) => theme.outlineColor};
   box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
 `;
@@ -104,7 +102,6 @@ const ItemImage = styled.img`
   object-fit: cover;
   border-radius: 8px;
   
-  /* Cartoon style */
   border: 2px solid ${({ theme }) => theme.outlineColor};
 `;
 
@@ -142,7 +139,6 @@ const QuantityControl = styled.div`
   border-radius: 8px;
   overflow: hidden;
   
-  /* Cartoon style */
   border: 2px solid ${({ theme }) => theme.outlineColor};
   box-shadow: 2px 2px 0 ${({ theme }) => theme.shadowStrong};
 `;
@@ -215,7 +211,6 @@ const CartSummary = styled.div`
   position: sticky;
   top: 100px;
   
-  /* Cartoon style */
   border: 3px solid ${({ theme }) => theme.outlineColor};
   box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
 `;
@@ -286,6 +281,22 @@ const Cart = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { items, totalPrice, loading, error } = useSelector(state => state.cart);
+
+    // Debug logging
+    useEffect(() => {
+        console.log('Cart Items:', items);
+
+        // Validate item structure
+        items.forEach((item, index) => {
+            console.log(`Item ${index}:`, {
+                id: item.id,
+                product: item.product,
+                quantity: item.quantity,
+                productPrice: item.product?.price,
+                priceType: typeof item.product?.price
+            });
+        });
+    }, [items]);
     const { isAuthenticated } = useSelector(state => state.auth);
 
     useEffect(() => {
@@ -306,7 +317,6 @@ const Cart = () => {
     };
 
     const handleClearCart = () => {
-        // Mostrar confirmación
         if (window.confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
             dispatch(clearCart());
 
@@ -321,7 +331,6 @@ const Cart = () => {
         if (isAuthenticated) {
             navigate('/checkout');
         } else {
-            // Redirigir a login con parámetro de retorno
             navigate('/login', { state: { from: '/checkout' } });
 
             dispatch(showNotification({
@@ -329,6 +338,12 @@ const Cart = () => {
                 type: 'info'
             }));
         }
+    };
+
+    // Función segura para convertir a número
+    const safeNumber = (value) => {
+        const num = Number(value);
+        return isNaN(num) ? 0 : num;
     };
 
     if (loading) {
@@ -363,8 +378,8 @@ const Cart = () => {
         );
     }
 
-    // Calcular subtotal y envío
-    const subtotal = totalPrice;
+    // Cálculo seguro de totales
+    const subtotal = safeNumber(totalPrice);
     const shipping = subtotal > 20 ? 0 : 2.99;
     const total = subtotal + shipping;
 
@@ -391,7 +406,14 @@ const Cart = () => {
 
                                 <ItemInfo>
                                     <ItemName>{item.product.name}</ItemName>
-                                    <ItemPrice>{item.product.price.toFixed(2)} € / unidad</ItemPrice>
+                                    <ItemPrice>
+                                        {(() => {
+                                            const price = Number(item.product.price);
+                                            return isNaN(price)
+                                                ? '0.00'
+                                                : price.toFixed(2)
+                                        })()} € / unidad
+                                    </ItemPrice>
                                 </ItemInfo>
 
                                 <ItemActions>
@@ -408,7 +430,16 @@ const Cart = () => {
                                         </QuantityButton>
                                     </QuantityControl>
 
-                                    <ItemTotal>{(item.product.price * item.quantity).toFixed(2)} €</ItemTotal>
+                                    <ItemTotal>
+                                        {(() => {
+                                            const price = Number(item.product.price);
+                                            const quantity = Number(item.quantity);
+                                            const total = isNaN(price) || isNaN(quantity)
+                                                ? 0
+                                                : price * quantity;
+                                            return total.toFixed(2);
+                                        })()} €
+                                    </ItemTotal>
 
                                     <RemoveButton onClick={() => handleRemoveItem(item.id)}>
                                         <FiTrash2 />

@@ -137,14 +137,31 @@ const OrderConfirmation = () => {
     const dispatch = useDispatch();
     const { currentOrder, loading, error } = useSelector(state => state.orders);
 
+    // Helper function to safely convert to number
+    const safeNumber = (value) => {
+        const num = Number(value);
+        return isNaN(num) ? 0 : num;
+    };
+
     useEffect(() => {
         if (orderId) {
             dispatch(fetchOrderDetail(orderId));
         }
     }, [dispatch, orderId]);
 
+    // Debug logging
+    useEffect(() => {
+        if (currentOrder) {
+            console.log('Current Order Debug:', {
+                ...currentOrder,
+                total_price: currentOrder.total_price,
+                total_price_type: typeof currentOrder.total_price
+            });
+        }
+    }, [currentOrder]);
+
     const handleDownloadInvoice = () => {
-        // Implementación del download de factura
+        // Implementation of invoice download
         window.open(`/api/invoices/download/${orderId}`, '_blank');
     };
 
@@ -211,7 +228,9 @@ const OrderConfirmation = () => {
 
                 <OrderInfoRow>
                     <OrderInfoLabel>Total</OrderInfoLabel>
-                    <OrderInfoValue>{currentOrder.total_price.toFixed(2)} €</OrderInfoValue>
+                    <OrderInfoValue>
+                        {safeNumber(currentOrder.total_price).toFixed(2)} €
+                    </OrderInfoValue>
                 </OrderInfoRow>
             </OrderInfoCard>
 

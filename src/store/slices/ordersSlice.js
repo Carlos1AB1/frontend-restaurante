@@ -81,11 +81,18 @@ const ordersSlice = createSlice({
             })
             .addCase(fetchOrders.fulfilled, (state, action) => {
                 state.loading = false;
-                state.orders = action.payload;
+                // Log the payload to understand its structure
+                console.log('Fetch Orders Payload:', action.payload);
+
+                // Ensure we're setting an array
+                state.orders = Array.isArray(action.payload)
+                    ? action.payload
+                    : (action.payload.results || []);
             })
             .addCase(fetchOrders.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || { message: 'Error al cargar pedidos' };
+                state.orders = []; // Ensure orders is an empty array on error
             })
             // Fetch order detail reducers
             .addCase(fetchOrderDetail.pending, (state) => {
