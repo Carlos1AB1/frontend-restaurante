@@ -1,13 +1,13 @@
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {useNavigate} from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import {cancelOrder, fetchOrders} from '../../store/slices/ordersSlice';
-import {showNotification} from '../../store/slices/uiSlice';
+import { cancelOrder, fetchOrders } from '../../store/slices/ordersSlice';
+import { showNotification } from '../../store/slices/uiSlice';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import Modal from '../../components/common/Modal';
-import {FiChevronRight, FiDownload, FiSearch, FiX} from 'react-icons/fi';
+import { FiChevronRight, FiDownload, FiSearch, FiX } from 'react-icons/fi';
 
 const OrderHistoryContainer = styled.div`
     max-width: 1000px;
@@ -148,25 +148,25 @@ const OrderStatus = styled.div`
     font-weight: bold;
     color: white;
     background-color: ${({status, theme}) => {
-        switch (status) {
-            case 'PENDING':
-                return theme.warning;
-            case 'PROCESSING':
-                return theme.info;
-            case 'SCHEDULED':
-                return theme.accent;
-            case 'OUT_FOR_DELIVERY':
-                return theme.secondary;
-            case 'DELIVERED':
-                return theme.success;
-            case 'CANCELLED':
-                return '#999';
-            case 'FAILED':
-                return theme.error;
-            default:
-                return theme.primary;
-        }
-    }};
+    switch (status) {
+        case 'PENDING':
+            return theme.warning;
+        case 'PROCESSING':
+            return theme.info;
+        case 'SCHEDULED':
+            return theme.accent;
+        case 'OUT_FOR_DELIVERY':
+            return theme.secondary;
+        case 'DELIVERED':
+            return theme.success;
+        case 'CANCELLED':
+            return '#999';
+        case 'FAILED':
+            return theme.error;
+        default:
+            return theme.primary;
+    }
+}};
 
     /* Cartoon style */
     border: 2px solid ${({theme}) => theme.outlineColor};
@@ -270,95 +270,64 @@ const CancelConfirmModal = styled(Modal)`
 const OrderHistory = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const {orders, loading, error} = useSelector(state => state.orders);
+    const { orders, loading, error } = useSelector(state => state.orders);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
     useEffect(() => {
         dispatch(fetchOrders());
     }, [dispatch]);
 
-    // Enhanced debug logging with comprehensive error tracking
-    useEffect(() => {
-        if (!orders || orders.length === 0) {
-            console.warn('No orders found', {orders});
-            return;
-        }
-
-        try {
-            const orderDebugInfo = orders.map((order, index) => {
-                let totalPriceInfo = {
-                    original: order.total_price,
-                    type: typeof order.total_price,
-                    stringValue: String(order.total_price),
-                    numberValue: Number(order.total_price),
-                    isNaN: isNaN(Number(order.total_price))
-                };
-
-                return {
-                    index,
-                    id: order.id,
-                    totalPriceInfo,
-                    orderKeys: Object.keys(order)
-                };
-            });
-
-            console.log('Orders Comprehensive Debug:', {
-                ordersCount: orders.length,
-                orderDebugInfo
-            });
-        } catch (error) {
-            console.error('Error in orders debug logging:', error);
-        }
-    }, [orders]);
-
-
     const handleViewOrder = (orderId) => {
         navigate(`/orders/${orderId}`);
     };
 
-    const handleDownloadInvoice = (orderId, e) => {
-        e.stopPropagation(); // Evitar la navegación al detalle
+    const handleDownloadInvoice = async (orderId, e) => {
+        e.stopPropagation(); // Prevent navigation to detail
+        setIsDownloadingInvoice(true);
+
         try {
-            import('../../api/orders').then(module => {
-                module.default.downloadInvoice(orderId)
-                    .then(response => {
-                        // Create a blob URL for the download
-                        const blob = new Blob([response.data], {type: 'application/pdf'});
-                        const url = window.URL.createObjectURL(blob);
+            const ordersApiModule = await import('../../api/orders');
+            const response = await ordersApiModule.default.downloadInvoice(orderId);
 
-                        // Create a temporary link element to trigger download
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.setAttribute('download', `factura_${orderId}.pdf`);
-                        document.body.appendChild(link);
-                        link.click();
+            // Create a blob URL for the download
+            const blob = new Blob([response.data], {type: 'application/pdf'});
+            const url = window.URL.createObjectURL(blob);
 
-                        // Clean up
-                        link.remove();
-                        window.URL.revokeObjectURL(url);
-                    })
-                    .catch(error => {
-                        console.error('Error downloading invoice:', error);
+            // Find the current order from the orders array
+            const order = orders.find(o => o.id === orderId);
 
-                        // Show user-friendly notification
-                        dispatch(showNotification({
-                            message: 'No se pudo descargar la factura. Inténtalo de nuevo más tarde.',
-                            type: 'error'
-                        }));
-                    });
-            });
+            // Create a temporary link element to trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            // Use order number if available, otherwise use ID
+            const filename = `factura_${order?.order_number || orderId}.pdf`;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            dispatch(showNotification({
+                message: 'Factura descargada correctamente',
+                type: 'success'
+            }));
         } catch (error) {
-            console.error('Invoice download error:', error);
+            console.error('Error downloading invoice:', error);
 
             // Show user-friendly notification
             dispatch(showNotification({
-                message: 'Hubo un problema al descargar la factura.',
+                message: 'No se pudo descargar la factura. Inténtalo de nuevo más tarde.',
                 type: 'error'
             }));
+        } finally {
+            setIsDownloadingInvoice(false);
         }
     };
 
@@ -520,15 +489,11 @@ const OrderHistory = () => {
                                 <OrderInfo>
                                     <InfoItem>
                                         <h4>Dirección</h4>
-                                        <p>{order.delivery_address.split('\n')[0]}</p>
+                                        <p>{order.delivery_address && order.delivery_address.split('\n')[0]}</p>
                                     </InfoItem>
 
                                     <InfoItem>
                                         <h4>Total</h4>
-                                        {/* Convertimos a número (float) antes de formatear.
-        Usamos parseFloat para manejar decimales.
-        Añadimos '|| 0' por si total_price fuera null o undefined,
-        para evitar errores con parseFloat(null). */}
                                         <p>{parseFloat(order.total_price || 0).toFixed(2)} €</p>
                                     </InfoItem>
 
@@ -543,7 +508,7 @@ const OrderHistory = () => {
                                 <OrderItems>
                                     <h4>Productos</h4>
                                     <ItemsList>
-                                        {order.items.map((item, index) => (
+                                        {order.items && order.items.map((item, index) => (
                                             <Item key={index}>
                                                 <span className="quantity">{item.quantity}x</span> {item.product_name}
                                             </Item>
