@@ -1,0 +1,240 @@
+// src/pages/OrderConfirmation/index.js
+import React, { useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import styled, { keyframes } from 'styled-components';
+import { fetchOrderDetail } from '../../store/slices/ordersSlice';
+import Button from '../../components/common/Button';
+import Loader from '../../components/common/Loader';
+import { FiCheck, FiDownload, FiFileText, FiChevronRight, FiHome } from 'react-icons/fi';
+
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+`;
+
+const ConfirmationContainer = styled.div`
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+`;
+
+const SuccessIcon = styled.div`
+  width: 80px;
+  height: 80px;
+  background-color: ${({ theme }) => theme.success};
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 30px;
+  color: white;
+  font-size: 2rem;
+  animation: ${pulse} 2s infinite;
+  
+  /* Cartoon style */
+  border: 3px solid ${({ theme }) => theme.outlineColor};
+  box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
+`;
+
+const ConfirmationTitle = styled.h1`
+  font-size: 2.5rem;
+  color: ${({ theme }) => theme.heading};
+  margin-bottom: 15px;
+`;
+
+const ConfirmationMessage = styled.p`
+  font-size: 1.2rem;
+  color: ${({ theme }) => theme.text};
+  margin-bottom: 40px;
+`;
+
+const OrderInfoCard = styled.div`
+  background-color: ${({ theme }) => theme.cardBg};
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 40px;
+  
+  /* Cartoon style */
+  border: 3px solid ${({ theme }) => theme.outlineColor};
+  box-shadow: 5px 5px 0 ${({ theme }) => theme.shadowStrong};
+`;
+
+const OrderInfoTitle = styled.h2`
+  font-size: 1.3rem;
+  color: ${({ theme }) => theme.heading};
+  margin-bottom: 20px;
+  text-align: left;
+`;
+
+const OrderInfoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid ${({ theme }) => theme.border};
+  text-align: left;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const OrderInfoLabel = styled.span`
+  color: ${({ theme }) => theme.text};
+  font-weight: bold;
+`;
+
+const OrderInfoValue = styled.span`
+  color: ${({ theme }) => theme.primary};
+`;
+
+const ButtonsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+  
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
+`;
+
+const InvoiceButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+`;
+
+const TrackingNotice = styled.div`
+  background-color: ${({ theme }) => theme.accent + '30'};
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 30px;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text};
+  
+  a {
+    color: ${({ theme }) => theme.primary};
+    font-weight: bold;
+  }
+`;
+
+const OrderConfirmation = () => {
+    const { orderId } = useParams();
+    const dispatch = useDispatch();
+    const { currentOrder, loading, error } = useSelector(state => state.orders);
+
+    useEffect(() => {
+        if (orderId) {
+            dispatch(fetchOrderDetail(orderId));
+        }
+    }, [dispatch, orderId]);
+
+    const handleDownloadInvoice = () => {
+        // Implementación del download de factura
+        window.open(`/api/invoices/download/${orderId}`, '_blank');
+    };
+
+    if (loading) {
+        return <Loader type="cartoon" text="Cargando información del pedido..." />;
+    }
+
+    if (error || !currentOrder) {
+        return (
+            <ConfirmationContainer>
+                <ConfirmationTitle>¡Ups! Algo salió mal</ConfirmationTitle>
+                <ConfirmationMessage>
+                    No pudimos cargar la información de tu pedido. Por favor, verifica en tu historial de pedidos.
+                </ConfirmationMessage>
+                <ButtonsContainer>
+                    <Button to="/orders" cartoon>Ver mis pedidos</Button>
+                    <Button to="/" variant="outline">Volver al inicio</Button>
+                </ButtonsContainer>
+            </ConfirmationContainer>
+        );
+    }
+
+    return (
+        <ConfirmationContainer>
+            <SuccessIcon>
+                <FiCheck />
+            </SuccessIcon>
+
+            <ConfirmationTitle>¡Pedido Confirmado!</ConfirmationTitle>
+            <ConfirmationMessage>
+                Gracias por tu pedido. Hemos recibido tu solicitud y estamos procesándola.
+            </ConfirmationMessage>
+
+            <OrderInfoCard>
+                <OrderInfoTitle>Detalles del Pedido</OrderInfoTitle>
+
+                <OrderInfoRow>
+                    <OrderInfoLabel>Número de Pedido</OrderInfoLabel>
+                    <OrderInfoValue>{currentOrder.order_number}</OrderInfoValue>
+                </OrderInfoRow>
+
+                <OrderInfoRow>
+                    <OrderInfoLabel>Estado</OrderInfoLabel>
+                    <OrderInfoValue>{currentOrder.status_display}</OrderInfoValue>
+                </OrderInfoRow>
+
+                <OrderInfoRow>
+                    <OrderInfoLabel>Fecha</OrderInfoLabel>
+                    <OrderInfoValue>
+                        {new Date(currentOrder.created_at).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}
+                    </OrderInfoValue>
+                </OrderInfoRow>
+
+                <OrderInfoRow>
+                    <OrderInfoLabel>Dirección de Entrega</OrderInfoLabel>
+                    <OrderInfoValue>{currentOrder.delivery_address}</OrderInfoValue>
+                </OrderInfoRow>
+
+                <OrderInfoRow>
+                    <OrderInfoLabel>Total</OrderInfoLabel>
+                    <OrderInfoValue>{currentOrder.total_price.toFixed(2)} €</OrderInfoValue>
+                </OrderInfoRow>
+            </OrderInfoCard>
+
+            <ButtonsContainer>
+                <InvoiceButton onClick={handleDownloadInvoice} cartoon>
+                    <FiDownload /> Descargar Factura
+                </InvoiceButton>
+
+                <InvoiceButton to="/orders" variant="outline">
+                    <FiFileText /> Ver mis pedidos
+                </InvoiceButton>
+            </ButtonsContainer>
+
+            <TrackingNotice>
+                Puedes seguir el estado de tu pedido en la sección <Link to="/orders">Mis Pedidos</Link>.
+                Te enviaremos actualizaciones por correo electrónico cuando el pedido esté en camino y cuando sea entregado.
+            </TrackingNotice>
+
+            <Button to="/" variant="text" style={{ marginTop: '30px' }}>
+                Volver a la página principal <FiChevronRight />
+            </Button>
+        </ConfirmationContainer>
+    );
+};
+
+export default OrderConfirmation;
