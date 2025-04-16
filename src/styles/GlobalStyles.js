@@ -1,8 +1,10 @@
 // src/styles/GlobalStyles.js
 import { createGlobalStyle } from 'styled-components';
 
+// *** LA LÍNEA @import HA SIDO ELIMINADA ***
+
 export const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Bubblegum+Sans&display=swap');
+  /* @import ya no está aquí */
 
   * {
     box-sizing: border-box;
@@ -11,7 +13,8 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-family: 'Poppins', sans-serif;
+    /* Las fuentes se siguen aplicando aquí, pero se cargan desde index.html */
+    font-family: 'Poppins', sans-serif; 
     background-color: ${({ theme }) => theme.background};
     color: ${({ theme }) => theme.text};
     transition: all 0.3s ease;
@@ -19,7 +22,8 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Bubblegum Sans', cursive;
+    /* Las fuentes se siguen aplicando aquí */
+    font-family: 'Bubblegum Sans', cursive; 
     margin-bottom: 1rem;
     color: ${({ theme }) => theme.heading};
   }
@@ -72,6 +76,7 @@ export const GlobalStyles = createGlobalStyle`
 
   img {
     max-width: 100%;
+    display: block; /* Evita espacio extra debajo de imágenes */
   }
 
   /* Animated Background Style */
@@ -86,7 +91,7 @@ export const GlobalStyles = createGlobalStyle`
       left: 0;
       right: 0;
       bottom: 0;
-      background-image: url('/assets/images/backgrounds/pattern.svg');
+      background-image: url('/assets/images/backgrounds/pattern.svg'); /* Asegúrate que esta ruta sea correcta desde la raíz pública */
       background-size: 200px;
       opacity: 0.05;
       z-index: -1;

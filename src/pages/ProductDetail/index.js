@@ -1,613 +1,343 @@
-// src/pages/OrderDetail/index.js
-import React, {useEffect, useState} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
-import {useDispatch, useSelector} from 'react-redux';
+// src/pages/ProductDetail/index.js
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
-import {cancelOrder, fetchOrderDetail} from '../../store/slices/ordersSlice';
-import {showNotification} from '../../store/slices/uiSlice';
+import { fetchProductDetail, clearCurrentProduct } from '../../store/slices/menuSlice';
+import { addToCart } from '../../store/slices/cartSlice';
+import { showNotification } from '../../store/slices/uiSlice';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
-import Modal from '../../components/common/Modal';
-import {FiChevronLeft, FiClock, FiFileText, FiLoader, FiMapPin, FiPhone, FiX} from 'react-icons/fi';
+import ProductReviews from './ProductReviews';
+import RelatedProducts from './RelatedProducts';
+import { FiShoppingCart, FiMinus, FiPlus, FiStar, FiArrowLeft } from 'react-icons/fi';
 
-// *** Importa tu cliente/módulo API ***
-import apiClient from '../../api/orders';
-
-
-// --- Styled Components (Sin cambios) ---
-const OrderDetailContainer = styled.div`
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 20px;
+const ProductDetailContainer = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
 `;
 
 const BackButton = styled.button`
-    background: none;
-    border: none;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: ${({theme}) => theme.text};
-    margin-bottom: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    padding: 8px 0;
-
-    &:hover {
-        color: ${({theme}) => theme.primary};
-        transform: translateX(-5px);
-    }
-
-    svg {
-        font-size: 1.1rem;
-    }
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: ${({ theme }) => theme.text};
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px 0;
+  
+  &:hover {
+    color: ${({ theme }) => theme.primary};
+    transform: translateX(-5px);
+  }
+  
+  svg {
+    font-size: 1.1rem;
+  }
 `;
 
-const OrderHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-    gap: 15px;
-
-    @media (max-width: 768px) {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+const ProductContent = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+  }
 `;
 
-const OrderTitle = styled.h1`
-    font-size: 2rem;
-    color: ${({theme}) => theme.heading};
-    margin: 0;
+const ProductImage = styled.div`
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  
+  img {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+  }
+  
+  /* Cartoon style */
+  border: 3px solid ${({ theme }) => theme.outlineColor};
+  box-shadow: 8px 8px 0 ${({ theme }) => theme.shadowStrong};
 `;
 
-const OrderNumber = styled.span`
-    font-size: 1.2rem;
-    color: ${({theme}) => theme.primary};
-    display: block;
+const ProductInfo = styled.div`
+  display: flex;
+  flex-direction: column;
 `;
 
-const OrderStatus = styled.div`
-    padding: 8px 20px;
-    border-radius: 50px;
-    font-size: 1rem;
+const ProductTitle = styled.h1`
+  font-size: 2.5rem;
+  color: ${({ theme }) => theme.heading};
+  margin-bottom: 10px;
+`;
+
+const ProductDescription = styled.p`
+  color: ${({ theme }) => theme.text};
+  line-height: 1.6;
+  margin-bottom: 20px;
+`;
+
+const PriceRating = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const Price = styled.div`
+  font-size: 2rem;
+  font-weight: bold;
+  color: ${({ theme }) => theme.primary};
+`;
+
+const Rating = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  
+  svg {
+    color: ${({ theme }) => theme.accent};
+  }
+  
+  span {
     font-weight: bold;
-    color: white;
-    background-color: ${({status, theme}) => {
-        switch (status) {
-            case 'PENDING':
-                return theme.warning;
-            case 'PROCESSING':
-                return theme.info;
-            case 'SCHEDULED':
-                return theme.accent;
-            case 'OUT_FOR_DELIVERY':
-                return theme.secondary;
-            case 'DELIVERED':
-                return theme.success;
-            case 'CANCELLED':
-                return '#999';
-            case 'FAILED':
-                return theme.error;
-            default:
-                return theme.primary;
-        }
-    }};
-
-    /* Cartoon style */
-    border: 2px solid ${({theme}) => theme.outlineColor};
-    box-shadow: 3px 3px 0 ${({theme}) => theme.shadowStrong};
+  }
 `;
 
-const OrderContent = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
-
-    @media (min-width: 768px) {
-        grid-template-columns: 2fr 1fr;
-    }
+const CategoryTag = styled.div`
+  display: inline-block;
+  background-color: ${({ theme }) => theme.secondary};
+  color: white;
+  padding: 5px 15px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  
+  /* Cartoon style */
+  border: 2px solid ${({ theme }) => theme.outlineColor};
 `;
 
-const OrderDetailsCard = styled.div`
-    background-color: ${({theme}) => theme.cardBg};
-    border-radius: 12px;
-    overflow: hidden;
-
-    /* Cartoon style */
-    border: 3px solid ${({theme}) => theme.outlineColor};
-    box-shadow: 5px 5px 0 ${({theme}) => theme.shadowStrong};
+const QuantitySelector = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
 `;
 
-const SectionHeader = styled.div`
-    padding: 15px 20px;
-    background-color: ${({theme}) => theme.shadow};
-    border-bottom: 2px solid ${({theme}) => theme.outlineColor || theme.border};
+const QuantityLabel = styled.span`
+  font-weight: bold;
+  color: ${({ theme }) => theme.text};
 `;
 
-const SectionTitle = styled.h2`
-    font-size: 1.3rem;
-    color: ${({theme}) => theme.heading};
-    margin: 0;
+const QuantityControls = styled.div`
+  display: flex;
+  align-items: center;
+  
+  /* Cartoon style */
+  border: 2px solid ${({ theme }) => theme.outlineColor};
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 ${({ theme }) => theme.shadowStrong};
+  overflow: hidden;
 `;
 
-const SectionContent = styled.div`
-    padding: 20px;
+const QuantityButton = styled.button`
+  background: ${({ theme }) => theme.cardBg};
+  border: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: ${({ theme }) => theme.shadow};
+    color: ${({ theme }) => theme.primary};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
-const OrderInfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+const QuantityDisplay = styled.div`
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  background: ${({ theme }) => theme.cardBg};
 `;
 
-const InfoItem = styled.div`
-    h4 {
-        margin: 0 0 5px 0;
-        font-size: 0.9rem;
-        color: ${({theme}) => theme.text};
-        display: flex;
-        align-items: center;
-        gap: 5px;
+const AddToCartButton = styled(Button)`
+  margin-bottom: 20px;
+`;
 
-        svg {
-            color: ${({theme}) => theme.primary};
-        }
-    }
-
-    p {
-        margin: 0;
-        color: ${({theme}) => theme.heading};
-        white-space: pre-line;
-    }
+const Availability = styled.div`
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: ${({ available, theme }) => available ? theme.success : theme.error}30;
+  color: ${({ available, theme }) => available ? theme.success : theme.error};
+  margin-bottom: 20px;
+  
+  .status {
+    font-weight: bold;
+  }
 `;
 
 const Divider = styled.hr`
-    border: none;
-    height: 1px;
-    background-color: ${({theme}) => theme.border};
-    margin: 20px 0;
+  border: none;
+  height: 1px;
+  background-color: ${({ theme }) => theme.border};
+  margin: 30px 0;
 `;
 
-const OrderItems = styled.div`
-    h3 {
-        font-size: 1.2rem;
-        color: ${({theme}) => theme.heading};
-        margin: 0 0 15px 0;
-    }
-`;
-
-const ItemsList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-`;
-
-const OrderItem = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid ${({theme}) => theme.border};
-
-    &:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .item-details {
-        flex-grow: 1;
-        margin-right: 10px;
-    }
-
-    .item-name {
-        color: ${({theme}) => theme.heading};
-
-        .quantity {
-            font-weight: bold;
-            color: ${({theme}) => theme.primary};
-            margin-right: 5px;
-        }
-    }
-
-    .item-price {
-        font-weight: bold;
-        color: ${({theme}) => theme.text};
-        white-space: nowrap;
-    }
-`;
-
-const OrderSummary = styled.div`
-    background-color: ${({theme}) => theme.cardBg};
-    border-radius: 12px;
-    padding: 20px;
-    align-self: flex-start;
-
-    /* Cartoon style */
-    border: 3px solid ${({theme}) => theme.outlineColor};
-    box-shadow: 5px 5px 0 ${({theme}) => theme.shadowStrong};
-`;
-
-const SummaryTitle = styled.h2`
-    font-size: 1.3rem;
-    color: ${({theme}) => theme.heading};
-    margin: 0 0 20px 0;
-    padding-bottom: 10px;
-    border-bottom: 2px solid ${({theme}) => theme.outlineColor || theme.border};
-`;
-
-const SummaryRow = styled.div`
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    font-size: ${({large}) => (large ? '1.2rem' : '1rem')};
-    font-weight: ${({large}) => (large ? 'bold' : 'normal')};
-    color: ${({large, theme}) => (large ? theme.heading : theme.text)};
-
-    span:last-child {
-        white-space: nowrap;
-        margin-left: 10px;
-    }
-`;
-
-const TotalValue = styled.span`
-    color: ${({theme}) => theme.primary};
-`;
-
-const Actions = styled.div`
-    margin-top: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-`;
-
-const RotatingLoader = styled(FiLoader)`
-    animation: spin 1s linear infinite;
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-`;
-
-const ActionButton = styled(Button)`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-`;
-
-const NotFound = styled.div`
-    text-align: center;
-    padding: 40px;
-
-    h2 {
-        color: ${({theme}) => theme.heading};
-        margin-bottom: 15px;
-    }
-
-    p {
-        color: ${({theme}) => theme.text};
-        margin-bottom: 20px;
-    }
-`;
-
-const CancelConfirmModal = styled(Modal)`
-    .warning-text {
-        color: ${({theme}) => theme.error};
-        font-weight: bold;
-        margin-bottom: 20px;
-    }
-
-    p {
-        margin-bottom: 15px;
-        color: ${({theme}) => theme.text};
-    }
-`;
-
-
-// --- Componente React ---
-const OrderDetail = () => {
-    // 'orderId' de useParams SIEMPRE será un string
-    const {orderId: orderIdString} = useParams();
+const ProductDetail = () => {
+    const { slug } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const {currentOrder, loading, error} = useSelector(state => state.orders);
-    const [cancelModalOpen, setCancelModalOpen] = useState(false);
-    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+    const { currentProduct, loading, error } = useSelector(state => state.menu);
+    const [quantity, setQuantity] = useState(1);
 
     useEffect(() => {
-        // Sigue usando el string para fetchOrderDetail si esa función lo maneja bien
-        if (orderIdString) {
-            dispatch(fetchOrderDetail(orderIdString));
+        if (slug) {
+            dispatch(fetchProductDetail(slug));
         }
-    }, [dispatch, orderIdString]);
+
+        // Limpiar producto actual al desmontar
+        return () => {
+            dispatch(clearCurrentProduct());
+        };
+    }, [dispatch, slug]);
 
     const handleBack = () => {
-        if (window.history.length > 1) {
-            navigate(-1);
-        } else {
-            navigate('/orders');
-        }
+        navigate(-1);
     };
 
-// --- OrderDetail: NUEVA handleDownloadInvoice ---
-    const handleDownloadInvoice = async () => {
-        // Ya no necesitamos convertir el orderIdString de la URL para ESTA función
-
-        // *** PASO CLAVE: Obtener el ID NUMÉRICO desde currentOrder ***
-        // Asegúrate de que 'currentOrder' existe y tiene una propiedad 'id' numérica
-        if (!currentOrder || typeof currentOrder.id !== 'number') {
-            console.error("Error: No se pudo encontrar el ID numérico del pedido en currentOrder.", currentOrder);
-            dispatch(showNotification({message: 'No se pudo obtener el ID interno del pedido.', type: 'error'}));
-            return;
-        }
-
-        const numericOrderId = currentOrder.id; // Usar el ID numérico del objeto del pedido
-
-        // --- A partir de aquí, usa numericOrderId ---
-        console.log('[OrderDetail] Intentando descargar factura - ID (numérico de currentOrder):', numericOrderId);
-        setIsDownloadingInvoice(true);
-        dispatch(showNotification({message: 'Preparando descarga de factura...', type: 'info'}));
-
-        try {
-            // Llama a la API con el ID NUMÉRICO
-            const response = await apiClient.downloadInvoice(numericOrderId);
-
-            // Crea el Blob (igual que antes)
-            const blob = new Blob([response.data], {type: 'application/pdf'});
-
-            // Validaciones (igual que antes)
-            if (blob.size === 0) throw new Error("El servidor devolvió un archivo vacío.");
-            if (blob.type && blob.type !== 'application/pdf') console.warn(`Tipo de blob recibido: '${blob.type}'.`);
-
-            // Crear URL y enlace (igual que antes)
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            const filename = `factura_${currentOrder?.order_number || numericOrderId}.pdf`; // Usa el ID numérico si no hay order_number
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            dispatch(showNotification({message: '¡Factura descargada!', type: 'success'}));
-
-        } catch (error) {
-            console.error('Error al descargar la factura:', error);
-            const message = error?.response?.data?.message || error?.response?.data?.detail || error?.message || 'Hubo un problema al descargar la factura.';
-            dispatch(showNotification({message, type: 'error'}));
-        } finally {
-            setIsDownloadingInvoice(false);
-        }
+    const handleQuantityChange = (value) => {
+        setQuantity(prevQuantity => {
+            const newQuantity = prevQuantity + value;
+            return newQuantity < 1 ? 1 : newQuantity;
+        });
     };
 
+    const handleAddToCart = () => {
+        if (currentProduct) {
+            dispatch(addToCart({
+                product_id: currentProduct.id,
+                quantity: quantity
+            }));
 
-    const handleCancelOrder = () => {
-        setCancelModalOpen(true);
-    };
-
-    const confirmCancelOrder = () => {
-        // Sigue usando el ID string para cancelar si esa función lo maneja bien
-        if (orderIdString) {
-            dispatch(cancelOrder(orderIdString))
-                .unwrap()
-                .then(() => {
-                    dispatch(showNotification({message: 'Pedido cancelado correctamente', type: 'success'}));
-                    setCancelModalOpen(false);
-                })
-                .catch((cancelError) => {
-                    console.error("Error al cancelar el pedido:", cancelError);
-                    dispatch(showNotification({
-                        message: cancelError.message || 'No se pudo cancelar el pedido.',
-                        type: 'error'
-                    }));
-                    setCancelModalOpen(false);
-                });
+            dispatch(showNotification({
+                message: `${quantity}x ${currentProduct.name} añadido al carrito`,
+                type: 'success'
+            }));
         }
     };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Fecha no disponible';
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return 'Fecha inválida';
-            }
-            return date.toLocaleDateString('es-ES', {
-                year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false
-            });
-        } catch (e) {
-            console.error("Error formateando fecha:", dateString, e);
-            return 'Error de fecha';
-        }
-    };
-
-    const formatNumber = (value, decimals = 2) => {
-        const number = parseFloat(value || 0);
-        if (isNaN(number)) {
-            return (0).toFixed(decimals);
-        }
-        return number.toFixed(decimals);
-    };
-
-    // ---- Renderizado ----
 
     if (loading) {
-        return <Loader type="cartoon" text="Cargando detalles del pedido..."/>;
+        return <Loader type="cartoon" text="Cargando producto..." />;
     }
 
-    if (error || !currentOrder) {
-        console.error("Error al cargar OrderDetail:", error, "CurrentOrder:", currentOrder);
+    if (error || !currentProduct) {
         return (
-            <OrderDetailContainer>
-                <BackButton onClick={handleBack} aria-label="Volver">
-                    <FiChevronLeft/> Volver
+            <ProductDetailContainer>
+                <BackButton onClick={handleBack}>
+                    <FiArrowLeft /> Volver
                 </BackButton>
-                <NotFound>
-                    <h2>{error ? 'Error al cargar el pedido' : 'Pedido no encontrado'}</h2>
-                    <p>{error?.message || 'No pudimos encontrar los detalles del pedido que buscas.'}</p>
-                    <Button to="/orders" cartoon>Ver todos mis pedidos</Button>
-                </NotFound>
-            </OrderDetailContainer>
+                <h1>Producto no encontrado</h1>
+                <p>Lo sentimos, no pudimos encontrar el producto que buscas.</p>
+                <Button to="/menu" cartoon>Ver Menú</Button>
+            </ProductDetailContainer>
         );
     }
 
-    // Cálculos seguros de precios
-    const numericSubtotal = parseFloat(currentOrder.total_price || 0);
-    const shippingCost = numericSubtotal > 20 ? 0 : 2.99;
-    const numericTotal = numericSubtotal + shippingCost;
-
     return (
-        <OrderDetailContainer>
-            <BackButton onClick={handleBack} aria-label="Volver a mis pedidos">
-                <FiChevronLeft/> Volver a mis pedidos
+        <ProductDetailContainer>
+            <BackButton onClick={handleBack}>
+                <FiArrowLeft /> Volver al menú
             </BackButton>
 
-            <OrderHeader>
-                <div>
-                    <OrderTitle>Detalles del Pedido</OrderTitle>
-                    {currentOrder.order_number && <OrderNumber>{currentOrder.order_number}</OrderNumber>}
-                </div>
-                {currentOrder.status && currentOrder.status_display && (
-                    <OrderStatus status={currentOrder.status}>
-                        {currentOrder.status_display}
-                    </OrderStatus>
-                )}
-            </OrderHeader>
+            <ProductContent>
+                <ProductImage>
+                    <img
+                        src={currentProduct.image || '/assets/images/food-items/default-dish.jpg'}
+                        alt={currentProduct.name}
+                    />
+                </ProductImage>
 
-            <OrderContent>
-                {/* --- OrderDetailsCard --- */}
-                <OrderDetailsCard>
-                    <SectionHeader>
-                        <SectionTitle>Información del Pedido</SectionTitle>
-                    </SectionHeader>
-                    <SectionContent>
-                        <OrderInfoGrid>
-                            {/* Info items... */}
-                            <InfoItem>
-                                <h4><FiClock/> Fecha de Pedido</h4>
-                                <p>{formatDate(currentOrder.created_at)}</p>
-                            </InfoItem>
-                            {currentOrder.is_scheduled && currentOrder.scheduled_datetime && (
-                                <InfoItem>
-                                    <h4><FiClock/> Fecha Programada</h4>
-                                    <p>{formatDate(currentOrder.scheduled_datetime)}</p>
-                                </InfoItem>
-                            )}
-                            <InfoItem>
-                                <h4><FiMapPin/> Dirección de Entrega</h4>
-                                <p>{currentOrder.delivery_address || 'No especificada'}</p>
-                            </InfoItem>
-                            <InfoItem>
-                                <h4><FiPhone/> Teléfono de Contacto</h4>
-                                <p>{currentOrder.phone_number || 'No especificado'}</p>
-                            </InfoItem>
-                        </OrderInfoGrid>
-                        {currentOrder.notes && (
-                            <>
-                                <Divider/>
-                                <InfoItem>
-                                    <h4><FiFileText/> Notas</h4>
-                                    <p style={{whiteSpace: 'pre-line'}}>{currentOrder.notes}</p>
-                                </InfoItem>
-                            </>
+                <ProductInfo>
+                    <ProductTitle>{currentProduct.name}</ProductTitle>
+
+                    <CategoryTag>{currentProduct.category}</CategoryTag>
+
+                    <PriceRating>
+                        <Price>{parseFloat(currentProduct.price || 0).toFixed(2)} €</Price>
+
+                        {currentProduct.average_rating > 0 && (
+                            <Rating>
+                                <FiStar />
+                                <span>{parseFloat(currentProduct.average_rating || 0).toFixed(1)}</span>
+                                <span>({currentProduct.review_count || 0})</span>
+                            </Rating>
                         )}
-                        <Divider/>
-                        <OrderItems>
-                            <h3>Productos</h3>
-                            <ItemsList>
-                                {(currentOrder.items || []).map((item, index) => (
-                                    <OrderItem key={item.id || index}>
-                                        <div className="item-details">
-                                            <span className="item-name">
-                                                <span className="quantity">{item.quantity || 1}x</span>
-                                                {item.product_name || 'Producto desconocido'}
-                                            </span>
-                                        </div>
-                                        <div className="item-price">
-                                            {formatNumber(parseFloat(item.price || 0) * (item.quantity || 1))} €
-                                        </div>
-                                    </OrderItem>
-                                ))}
-                            </ItemsList>
-                        </OrderItems>
-                    </SectionContent>
-                </OrderDetailsCard>
+                    </PriceRating>
 
-                {/* --- OrderSummary --- */}
-                <OrderSummary>
-                    <SummaryTitle>Resumen</SummaryTitle>
-                    <SummaryRow>
-                        <span>Subtotal</span>
-                        <span>{formatNumber(numericSubtotal)} €</span>
-                    </SummaryRow>
-                    <SummaryRow>
-                        <span>Envío</span>
-                        <span>{shippingCost === 0 ? 'Gratis' : `${formatNumber(shippingCost)} €`}</span>
-                    </SummaryRow>
-                    <SummaryRow large>
-                        <span>Total</span>
-                        <TotalValue>{formatNumber(numericTotal)} €</TotalValue>
-                    </SummaryRow>
+                    <Availability available={currentProduct.is_available}>
+            <span className="status">
+              {currentProduct.is_available ? 'Disponible' : 'No disponible'}
+            </span>
+                    </Availability>
 
-                    {/* --- Botones de Acción --- */}
-                    <Actions>
-                        {currentOrder.can_cancel === true && currentOrder.status !== 'CANCELLED' && (
-                            <ActionButton
-                                variant="outline"
-                                onClick={handleCancelOrder}
+                    <ProductDescription>{currentProduct.description}</ProductDescription>
+
+                    <QuantitySelector>
+                        <QuantityLabel>Cantidad:</QuantityLabel>
+                        <QuantityControls>
+                            <QuantityButton
+                                onClick={() => handleQuantityChange(-1)}
+                                disabled={quantity <= 1}
                             >
-                                <FiX aria-hidden="true"/> Cancelar Pedido
-                            </ActionButton>
-                        )}
+                                <FiMinus />
+                            </QuantityButton>
+                            <QuantityDisplay>{quantity}</QuantityDisplay>
+                            <QuantityButton
+                                onClick={() => handleQuantityChange(1)}
+                            >
+                                <FiPlus />
+                            </QuantityButton>
+                        </QuantityControls>
+                    </QuantitySelector>
 
-                        <ActionButton
-                            cartoon
-                            onClick={handleDownloadInvoice} // Llama a la función corregida
-                            disabled={isDownloadingInvoice} // Deshabilitar mientras carga
-                            aria-label="Descargar Factura en formato PDF"
-                        >
-                            {isDownloadingInvoice ? (
-                                <RotatingLoader aria-hidden="true"/>
-                            ) : (
-                                <FiFileText aria-hidden="true"/>
-                            )}
-                            {isDownloadingInvoice ? 'Descargando...' : 'Descargar Factura'}
-                        </ActionButton>
-                    </Actions>
-                </OrderSummary>
-            </OrderContent>
+                    <AddToCartButton
+                        onClick={handleAddToCart}
+                        disabled={!currentProduct.is_available}
+                        cartoon
+                    >
+                        <FiShoppingCart /> Añadir al Carrito
+                    </AddToCartButton>
+                </ProductInfo>
+            </ProductContent>
 
-            {/* --- Modal --- */}
-            <CancelConfirmModal
-                isOpen={cancelModalOpen}
-                onClose={() => setCancelModalOpen(false)}
-                title="Confirmar Cancelación"
-                footer={
-                    <>
-                        <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
-                            No, mantener pedido
-                        </Button>
-                        <Button variant="primary" onClick={confirmCancelOrder} className="danger-button">
-                            Sí, cancelar pedido
-                        </Button>
-                    </>
-                }
-            >
-                <div className="warning-text">¿Estás seguro de que quieres cancelar este pedido?</div>
-                <p>Esta acción no se puede deshacer. El estado del pedido cambiará a "Cancelado".</p>
-            </CancelConfirmModal>
-        </OrderDetailContainer>
+            <Divider />
+
+            <ProductReviews productId={currentProduct.id} productSlug={slug} />
+
+            <Divider />
+
+            <RelatedProducts category={currentProduct.category_id} currentProductId={currentProduct.id} />
+        </ProductDetailContainer>
     );
 };
 
-export default OrderDetail;
+export default ProductDetail;

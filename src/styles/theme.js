@@ -37,7 +37,7 @@ export const lightTheme = {
 };
 
 export const darkTheme = {
-    background: '#222831',
+    background: '#232323',
     text: '#EEEEEE',
     heading: '#FF6B6B',
     primary: '#FF6B6B',
@@ -53,12 +53,12 @@ export const darkTheme = {
     error: '#E84855',
     warning: '#FFD166',
     info: '#4A8FE7',
-    border: '#393E46',
-    cardBg: '#393E46',
-    shadow: 'rgba(0, 0, 0, 0.2)',
-    shadowStrong: 'rgba(0, 0, 0, 0.3)',
-    navbar: '#1A1E25',
-    footer: '#1A1E25',
+    border: 'rgba(255,255,255,0.26)',
+    cardBg: '#5d5d5d',
+    shadow: 'rgba(0,0,0,0.58)',
+    shadowStrong: 'rgb(0,0,0)',
+    navbar: '#101010',
+    footer: '#1a1a1a',
     footerText: '#EEEEEE',
     foodCardBg: '#393E46',
     foodCardShadow: '5px 5px 0px #FF6B6B',

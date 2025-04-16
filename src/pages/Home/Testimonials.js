@@ -115,11 +115,14 @@ const Rating = styled.div`
   color: ${({ theme }) => theme.accent};
 `;
 
+// --- CORRECCIÓN AQUÍ ---
+// Renombra la prop a '$filled'
 const StarIcon = styled(FiStar)`
   width: 16px;
   height: 16px;
   margin-right: 2px;
-  fill: ${({ filled, theme }) => filled ? theme.accent : 'none'};
+  // Usa '$filled' para el estilo
+  fill: ${({ $filled, theme }) => $filled ? theme.accent : 'none'};
 `;
 
 const Testimonials = () => {
@@ -160,7 +163,9 @@ const Testimonials = () => {
             stars.push(
                 <StarIcon
                     key={i}
-                    filled={i <= rating}
+                    // --- CORRECCIÓN AQUÍ ---
+                    // Pasa la prop como '$filled'
+                    $filled={i <= rating}
                 />
             );
         }
@@ -179,11 +184,13 @@ const Testimonials = () => {
                         </TestimonialText>
                         <CustomerInfo>
                             <CustomerAvatar>
-                                <img src={testimonial.customer.avatar} alt={testimonial.customer.name} />
+                                {/* Añadir alt text descriptivo */}
+                                <img src={testimonial.customer.avatar} alt={`Avatar de ${testimonial.customer.name}`} />
                             </CustomerAvatar>
                             <div>
                                 <CustomerName>{testimonial.customer.name}</CustomerName>
-                                <Rating>
+                                {/* Añadir aria-label para accesibilidad */}
+                                <Rating aria-label={`Valoración: ${testimonial.customer.rating} de 5 estrellas`}>
                                     {renderStars(testimonial.customer.rating)}
                                 </Rating>
                             </div>

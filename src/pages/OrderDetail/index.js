@@ -310,22 +310,16 @@ const CancelConfirmModal = styled(Modal)`
         color: ${({theme}) => theme.text};
     }
 `;
-
 // --- Componente React ---
 const OrderDetail = () => {
-    // Obtener el UUID de la URL (siempre es string)
-    const {orderId: orderIdStringFromUrl} = useParams();
+    const { orderId: orderIdStringFromUrl } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    // Obtener el pedido completo cargado en Redux (lo necesitamos para el nombre del archivo)
-    const {currentOrder, loading, error} = useSelector(state => state.orders);
+    const { currentOrder, loading, error } = useSelector(state => state.orders);
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
     const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
-    // Ya no necesitamos las funciones isValidNumericId ni getNumericOrderId
-
     useEffect(() => {
-        // Usar el UUID de la URL para cargar los detalles del pedido
         if (orderIdStringFromUrl) {
             dispatch(fetchOrderDetail(orderIdStringFromUrl));
         }
@@ -339,30 +333,22 @@ const OrderDetail = () => {
         }
     };
 
-    // --- handleDownloadInvoice CORREGIDA para usar UUID STRING ---
     const handleDownloadInvoice = async () => {
-        // 1. Validar que tenemos el UUID string de la URL
         if (!orderIdStringFromUrl) {
             console.error("Error descarga: No se encontró ID (UUID string) en la URL.");
-            dispatch(showNotification({message: 'ID de pedido no encontrado en URL.', type: 'error'}));
+            dispatch(showNotification({ message: 'ID de pedido no encontrado en URL.', type: 'error' }));
             return;
         }
 
-        // --- Proceder con la descarga usando el UUID STRING ---
         console.log('[OrderDetail] Descargando factura - ID (UUID String):', orderIdStringFromUrl);
         setIsDownloadingInvoice(true);
-        dispatch(showNotification({message: 'Preparando descarga de factura...', type: 'info'}));
+        dispatch(showNotification({ message: 'Preparando descarga de factura...', type: 'info' }));
 
         try {
-            // *** PASO CLAVE: Llama a la API con el UUID STRING ***
             const response = await apiClient.downloadInvoice(orderIdStringFromUrl);
+            const blob = new Blob([response.data], { type: 'application/pdf' });
 
-            // Crea el Blob desde response.data (correcto por responseType: 'blob')
-            const blob = new Blob([response.data], {type: 'application/pdf'});
-
-            // Validaciones del blob
             if (blob.size === 0) {
-                // A menudo un 404 también resulta en blob vacío si no se maneja el error antes
                 console.error("Error: El blob recibido está vacío. Verifica la respuesta de la API.");
                 throw new Error("El servidor devolvió un archivo vacío o no se encontró la factura.");
             }
@@ -370,50 +356,41 @@ const OrderDetail = () => {
                 console.warn(`Advertencia: Tipo de blob recibido es '${blob.type}'.`);
             }
 
-            // Crear URL y enlace para descarga
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            // Usar currentOrder?.order_number si está disponible, si no, el UUID como fallback
             const filename = `factura_${currentOrder?.order_number || orderIdStringFromUrl}.pdf`;
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
 
-            // Limpieza
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
-            dispatch(showNotification({message: '¡Factura descargada!', type: 'success'}));
+            dispatch(showNotification({ message: '¡Factura descargada!', type: 'success' }));
 
         } catch (error) {
             console.error('Error detallado al descargar la factura:', error);
             let errorMessage = 'Hubo un problema al descargar la factura.';
-            // Extraer mensaje de error de Axios si está disponible
             if (error.response) {
                 errorMessage = `Error del servidor (${error.response.status}): ${error.response.data?.message || error.response.data?.detail || 'No se pudo obtener la factura.'}`;
-                // Intentar leer el blob de error si existe
                 if (error.response.data instanceof Blob && error.response.data.size < 2048) {
                     try {
                         const errorText = await error.response.data.text();
                         console.error("Contenido blob error:", errorText);
-                    } catch (readError) { /* ignore */
-                    }
+                    } catch (readError) { /* ignore */ }
                 }
             } else if (error.request) {
                 errorMessage = 'No se recibió respuesta del servidor. Verifica la conexión o la URL de la API.';
             } else {
                 errorMessage = error.message || errorMessage;
             }
-            // Mostrar notificación de error
-            dispatch(showNotification({message: errorMessage, type: 'error'}));
+            dispatch(showNotification({ message: errorMessage, type: 'error' }));
         } finally {
             setIsDownloadingInvoice(false);
         }
     };
-    // --- FIN handleDownloadInvoice CORREGIDA ---
 
-    // ... (resto de funciones handleCancelOrder, formatDate, formatNumber sin cambios) ...
     const handleCancelOrder = () => {
         setCancelModalOpen(true);
     };
@@ -423,7 +400,7 @@ const OrderDetail = () => {
             dispatch(cancelOrder(orderIdStringFromUrl))
                 .unwrap()
                 .then(() => {
-                    dispatch(showNotification({message: 'Pedido cancelado correctamente', type: 'success'}));
+                    dispatch(showNotification({ message: 'Pedido cancelado correctamente', type: 'success' }));
                     setCancelModalOpen(false);
                 })
                 .catch((cancelError) => {
@@ -436,10 +413,9 @@ const OrderDetail = () => {
                 });
         } else {
             console.error("No hay ID (string) para cancelar el pedido.");
-            dispatch(showNotification({message: 'No se pudo identificar el pedido a cancelar.', type: 'error'}));
+            dispatch(showNotification({ message: 'No se pudo identificar el pedido a cancelar.', type: 'error' }));
         }
     };
-
 
     const formatDate = (dateString) => {
         if (!dateString) return 'Fecha no disponible';
@@ -466,50 +442,42 @@ const OrderDetail = () => {
         return number.toFixed(decimals);
     };
 
-
-    // --- Renderizado ---
-
-    if (loading && !currentOrder) {
-        return <Loader type="cartoon" text="Cargando detalles del pedido..."/>;
+    if (loading) {
+        return <Loader type="cartoon" text="Cargando detalles del pedido..." />;
     }
 
-    if ((error && !currentOrder) || (!loading && !currentOrder)) {
-        console.error("Renderizado - Error o Pedido no encontrado:", error, "CurrentOrder:", currentOrder);
+    if (error || !currentOrder) {
+        console.error("Error al cargar OrderDetail:", error, "CurrentOrder:", currentOrder);
         return (
             <OrderDetailContainer>
                 <BackButton onClick={handleBack} aria-label="Volver">
-                    <FiChevronLeft/> Volver
+                    <FiChevronLeft /> Volver
                 </BackButton>
                 <NotFound>
                     <h2>{error ? 'Error al cargar el pedido' : 'Pedido no encontrado'}</h2>
-                    <p>{error?.message || 'No pudimos encontrar los detalles del pedido que buscas (UUID: ' + orderIdStringFromUrl + ').'}</p>
+                    <p>{error?.message || 'No pudimos encontrar los detalles del pedido que buscas.'}</p>
                     <Button to="/orders" cartoon>Ver todos mis pedidos</Button>
                 </NotFound>
             </OrderDetailContainer>
         );
     }
 
-    const numericSubtotal = parseFloat(currentOrder?.total_price || 0);
+    const numericSubtotal = parseFloat(currentOrder.total_price || 0);
     const shippingCost = numericSubtotal > 20 ? 0 : 2.99;
     const numericTotal = numericSubtotal + shippingCost;
 
-    // *** CONDICIÓN DISABLED SIMPLIFICADA ***
-    // Deshabilitar solo si se está descargando o si currentOrder (necesario para el nombre del archivo) no está listo.
-    const isDownloadButtonDisabled = isDownloadingInvoice || !currentOrder;
-
     return (
         <OrderDetailContainer>
-            {/* ... (BackButton, OrderHeader, OrderContent>OrderDetailsCard sin cambios) ... */}
             <BackButton onClick={handleBack} aria-label="Volver a mis pedidos">
-                <FiChevronLeft/> Volver a mis pedidos
+                <FiChevronLeft /> Volver a mis pedidos
             </BackButton>
 
             <OrderHeader>
                 <div>
                     <OrderTitle>Detalles del Pedido</OrderTitle>
-                    {currentOrder?.order_number && <OrderNumber>{currentOrder.order_number}</OrderNumber>}
+                    {currentOrder.order_number && <OrderNumber>{currentOrder.order_number}</OrderNumber>}
                 </div>
-                {currentOrder?.status && currentOrder?.status_display && (
+                {currentOrder.status && currentOrder.status_display && (
                     <OrderStatus status={currentOrder.status}>
                         {currentOrder.status_display}
                     </OrderStatus>
@@ -517,53 +485,51 @@ const OrderDetail = () => {
             </OrderHeader>
 
             <OrderContent>
-                {/* --- OrderDetailsCard --- */}
                 <OrderDetailsCard>
                     <SectionHeader>
                         <SectionTitle>Información del Pedido</SectionTitle>
                     </SectionHeader>
                     <SectionContent>
                         <OrderInfoGrid>
-                            {/* Info items... */}
                             <InfoItem>
-                                <h4><FiClock/> Fecha de Pedido</h4>
-                                <p>{formatDate(currentOrder?.created_at)}</p>
+                                <h4><FiClock /> Fecha de Pedido</h4>
+                                <p>{formatDate(currentOrder.created_at)}</p>
                             </InfoItem>
-                            {currentOrder?.is_scheduled && currentOrder?.scheduled_datetime && (
+                            {currentOrder.is_scheduled && currentOrder.scheduled_datetime && (
                                 <InfoItem>
-                                    <h4><FiClock/> Fecha Programada</h4>
+                                    <h4><FiClock /> Fecha Programada</h4>
                                     <p>{formatDate(currentOrder.scheduled_datetime)}</p>
                                 </InfoItem>
                             )}
                             <InfoItem>
-                                <h4><FiMapPin/> Dirección de Entrega</h4>
-                                <p>{currentOrder?.delivery_address || 'No especificada'}</p>
+                                <h4><FiMapPin /> Dirección de Entrega</h4>
+                                <p>{currentOrder.delivery_address || 'No especificada'}</p>
                             </InfoItem>
                             <InfoItem>
-                                <h4><FiPhone/> Teléfono de Contacto</h4>
-                                <p>{currentOrder?.phone_number || 'No especificado'}</p>
+                                <h4><FiPhone /> Teléfono de Contacto</h4>
+                                <p>{currentOrder.phone_number || 'No especificado'}</p>
                             </InfoItem>
                         </OrderInfoGrid>
-                        {currentOrder?.notes && (
+                        {currentOrder.notes && (
                             <>
-                                <Divider/>
+                                <Divider />
                                 <InfoItem>
-                                    <h4><FiFileText/> Notas</h4>
-                                    <p style={{whiteSpace: 'pre-line'}}>{currentOrder.notes}</p>
+                                    <h4><FiFileText /> Notas</h4>
+                                    <p style={{ whiteSpace: 'pre-line' }}>{currentOrder.notes}</p>
                                 </InfoItem>
                             </>
                         )}
-                        <Divider/>
+                        <Divider />
                         <OrderItems>
                             <h3>Productos</h3>
                             <ItemsList>
-                                {(currentOrder?.items || []).map((item, index) => (
+                                {(currentOrder.items || []).map((item, index) => (
                                     <OrderItem key={item.id || index}>
                                         <div className="item-details">
-                                            <span className="item-name">
-                                                <span className="quantity">{item.quantity || 1}x</span>
-                                                {item.product_name || 'Producto desconocido'}
-                                            </span>
+                      <span className="item-name">
+                        <span className="quantity">{item.quantity || 1}x</span>
+                          {item.product_name || 'Producto desconocido'}
+                      </span>
                                         </div>
                                         <div className="item-price">
                                             {formatNumber(parseFloat(item.price || 0) * (item.quantity || 1))} €
@@ -575,7 +541,6 @@ const OrderDetail = () => {
                     </SectionContent>
                 </OrderDetailsCard>
 
-                {/* --- OrderSummary --- */}
                 <OrderSummary>
                     <SummaryTitle>Resumen</SummaryTitle>
                     <SummaryRow>
@@ -591,30 +556,26 @@ const OrderDetail = () => {
                         <TotalValue>{formatNumber(numericTotal)} €</TotalValue>
                     </SummaryRow>
 
-                    {/* --- Botones de Acción --- */}
                     <Actions>
-                        {currentOrder?.can_cancel === true && currentOrder?.status !== 'CANCELLED' && (
+                        {currentOrder.can_cancel === true && currentOrder.status !== 'CANCELLED' && (
                             <ActionButton
                                 variant="outline"
                                 onClick={handleCancelOrder}
-                                disabled={!currentOrder} // Deshabilitado si no hay datos
                             >
-                                <FiX aria-hidden="true"/> Cancelar Pedido
+                                <FiX aria-hidden="true" /> Cancelar Pedido
                             </ActionButton>
                         )}
 
                         <ActionButton
                             cartoon
                             onClick={handleDownloadInvoice}
-                            // *** USA LA CONDICIÓN SIMPLIFICADA ***
-                            disabled={isDownloadButtonDisabled}
+                            disabled={isDownloadingInvoice}
                             aria-label="Descargar Factura en formato PDF"
-                            title={isDownloadButtonDisabled && !isDownloadingInvoice ? "Datos del pedido no disponibles para descarga" : undefined}
                         >
                             {isDownloadingInvoice ? (
-                                <RotatingLoader aria-hidden="true"/>
+                                <RotatingLoader aria-hidden="true" />
                             ) : (
-                                <FiFileText aria-hidden="true"/>
+                                <FiFileText aria-hidden="true" />
                             )}
                             {isDownloadingInvoice ? 'Descargando...' : 'Descargar Factura'}
                         </ActionButton>
@@ -622,7 +583,6 @@ const OrderDetail = () => {
                 </OrderSummary>
             </OrderContent>
 
-            {/* --- Modal (sin cambios) --- */}
             <CancelConfirmModal
                 isOpen={cancelModalOpen}
                 onClose={() => setCancelModalOpen(false)}
