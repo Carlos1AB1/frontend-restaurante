@@ -1,5 +1,5 @@
 // src/pages/OrderConfirmation/index.js
-import React, { useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import styled, { keyframes } from 'styled-components';
@@ -7,6 +7,8 @@ import { fetchOrderDetail } from '../../store/slices/ordersSlice';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import { FiCheck, FiDownload, FiFileText, FiChevronRight, FiHome } from 'react-icons/fi';
+import axiosInstance from '../../utils/axios';
+import {showNotification} from "../../store/slices/uiSlice";
 
 const pulse = keyframes`
   0% {
@@ -160,9 +162,87 @@ const OrderConfirmation = () => {
         }
     }, [currentOrder]);
 
-    const handleDownloadInvoice = () => {
-        // Implementation of invoice download
-        window.open(`/api/invoices/download/${orderId}`, '_blank');
+
+    const [downloading, setDownloading] = useState(false);
+    const handleDownloadInvoice = async () => {
+        if (!orderId) {
+            dispatch(showNotification({
+                message: 'ID de pedido no encontrado.',
+                type: 'error'
+            }));
+            return;
+        }
+
+        setDownloading(true);
+        dispatch(showNotification({
+            message: 'Preparando la descarga de la factura...',
+            type: 'info'
+        }));
+
+        try {
+            // Obtener la URL base de la API desde la configuración
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
+            // Usar la URL completa del backend para evitar problemas con React Router
+            const downloadUrl = `${API_BASE_URL}/invoices/download/${orderId}/`;
+
+            // Realizar la petición usando axiosInstance para incluir token de autenticación
+            const response = await axiosInstance.get(downloadUrl, {
+                responseType: 'blob'
+            });
+
+            // Verificar que la respuesta contiene datos
+            if (response.data.size === 0) {
+                throw new Error('El servidor devolvió un archivo vacío');
+            }
+
+            // Crear un blob URL para el archivo descargado
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+
+            // Crear un elemento <a> para descargar el archivo
+            const link = document.createElement('a');
+            link.href = url;
+            // Usar un nombre de archivo descriptivo
+            const filename = `factura_${currentOrder?.order_number || orderId}.pdf`;
+            link.setAttribute('download', filename);
+
+            // Añadir temporalmente al DOM, hacer clic y luego remover
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Liberar el URL del objeto
+            window.URL.revokeObjectURL(url);
+
+            dispatch(showNotification({
+                message: '¡Factura descargada correctamente!',
+                type: 'success'
+            }));
+        } catch (error) {
+            console.error('Error al descargar la factura:', error);
+
+            // Mensaje de error detallado para ayudar en la depuración
+            let errorMessage = 'Error al descargar la factura.';
+
+            if (error.response) {
+                // Error de respuesta del servidor (ej. 404, 500)
+                errorMessage = `Error del servidor (${error.response.status}): No se pudo descargar la factura.`;
+            } else if (error.request) {
+                // Error de red - no se recibió respuesta
+                errorMessage = 'No se recibió respuesta del servidor. Verifica tu conexión.';
+            } else {
+                // Error en la configuración de la petición
+                errorMessage = `Error en la petición: ${error.message}`;
+            }
+
+            dispatch(showNotification({
+                message: errorMessage,
+                type: 'error'
+            }));
+        } finally {
+            setDownloading(false);
+        }
     };
 
     if (loading) {
@@ -235,8 +315,16 @@ const OrderConfirmation = () => {
             </OrderInfoCard>
 
             <ButtonsContainer>
-                <InvoiceButton onClick={handleDownloadInvoice} cartoon>
-                    <FiDownload /> Descargar Factura
+                <InvoiceButton
+                    onClick={handleDownloadInvoice}
+                    cartoon
+                    disabled={downloading}
+                >
+                    {downloading ? 'Descargando...' : (
+                        <>
+                            <FiDownload /> Descargar Factura
+                        </>
+                    )}
                 </InvoiceButton>
 
                 <InvoiceButton to="/orders" variant="outline">

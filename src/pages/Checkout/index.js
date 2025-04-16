@@ -330,13 +330,17 @@ const Checkout = () => {
     useEffect(() => {
         // Cargar el carrito al montar
         dispatch(fetchCart());
+    }, [dispatch]);
 
-        // Redirigir a confirmación si ya se ha creado un pedido
+// Añadir un nuevo useEffect específicamente para manejar la redirección
+    useEffect(() => {
+        // Redirigir a confirmación solo cuando se ha creado un pedido exitosamente
         if (orderCreated && currentOrder) {
+            console.log("Pedido creado exitosamente, redirigiendo a confirmación:", currentOrder.id);
             navigate(`/order-confirmation/${currentOrder.id}`);
             dispatch(clearOrderCreated());
         }
-    }, [dispatch, orderCreated, currentOrder, navigate]);
+    }, [orderCreated, currentOrder, navigate, dispatch]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
