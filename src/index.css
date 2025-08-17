@@ -1,0 +1,93 @@
+
+  /* Este archivo será importado en index.js */
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Estilos para smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Estilos para scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FF6B6B;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF3B3B;
+}
+
+/* Ocultar scrollbar para Chrome, Safari y Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ocultar scrollbar para IE, Edge y Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Accesibilidad - mejoras para enfoque */
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid #FF6B6B;
+  outline-offset: 2px;
+}
+
+/* Transiciones suaves para hover y active */
+button, a {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Animaciones de entrada */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+.slide-up-delay {
+  animation: slideUp 0.5s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Utilidades para espaciado */
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+/* Utilidades para estilo de texto */
+.text-center { text-align: center; }
+.text-primary { color: #FF6B6B; }
+.text-secondary { color: #4ECDC4; }
+.text-accent { color: #FFD166; }
+.text-error { color: #E84855; }
