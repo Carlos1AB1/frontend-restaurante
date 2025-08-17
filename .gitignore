@@ -1,41 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-
-# Entornos virtuales
-venv/
-env/
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-db.sqlite3
-
-# Archivos de configuración/secretos
-*.env
-.env
-
-# Archivos de logs
-*.log
-
-# Archivos de IDEs/editores
-.vscode/
-.idea/
-*.swp
-*~
-
-# Archivos de coverage/tests
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-
-# Archivos de build/distribución
-build/
-dist/
-*.egg-info/
-
-
 # dependencies
 /node_modules
 /.pnp
